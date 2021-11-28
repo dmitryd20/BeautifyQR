@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import WidgetKit
 
 class ViewController: UIViewController {
 
@@ -25,22 +26,31 @@ class ViewController: UIViewController {
     // MARK: - Private Properties
 
     private var codeContents: String?
-    private let codeService = QRService()
     private var pickerMode = PickerMode.codeImage
 
+    private let codeService = QRService()
+    private let storageService = StorageService()
+
+    // MARK: - UIViewController
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        setupInitialState()
+    }
 }
 
 // MARK: - PHPickerViewControllerDelegate
 
 extension ViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
 
-    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+    func imagePickerController(_ picker: UIImagePickerController,
+                               didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
         picker.dismiss(animated: true)
         switch pickerMode {
         case .codeImage:
             handleCodeImageLoaded(info[.originalImage] as? UIImage)
         case .backgroundImage:
-            handleBacgroundImageLoaded(info[.editedImage] as? UIImage)
+            handleBackgroundImageLoaded(info[.editedImage] as? UIImage)
         }
     }
 
@@ -54,6 +64,10 @@ extension ViewController: UIImagePickerControllerDelegate, UINavigationControlle
 
 private extension ViewController {
 
+    func setupInitialState() {
+        imageView.image = storageService.lastImage
+    }
+
     func handleCodeImageLoaded(_ image: UIImage?) {
         guard let image = image?.cgImage, let imageCodeContents = codeService.getCode(from: image) else {
             DispatchQueue.main.async { self.showError() }
@@ -65,7 +79,7 @@ private extension ViewController {
         DispatchQueue.main.async { self.showImage(basicCodeImage) }
     }
 
-    func handleBacgroundImageLoaded(_ image: UIImage?) {
+    func handleBackgroundImageLoaded(_ image: UIImage?) {
         guard let codeContents = codeContents else {
             return
         }
@@ -80,7 +94,7 @@ private extension ViewController {
             message: "QR код на картинке не удалось распознать",
             preferredStyle: .alert
         )
-        alert.addAction(UIAlertAction(title: "OK", style: .cancel, handler: nil))
+        alert.addAction(UIAlertAction(title: "OK", style: .cancel))
         present(alert, animated: true) { [weak self] in
             self?.showImage(nil)
         }
@@ -92,6 +106,8 @@ private extension ViewController {
         UIView.animate(withDuration: 0.3) {
             self.selectBackgroundButton.isHidden = image == nil
         }
+        storageService.lastImage = image
+        updateWidget()
     }
 
     func showImagePicker(withCropping: Bool) {
@@ -100,6 +116,10 @@ private extension ViewController {
         picker.sourceType = .photoLibrary
         picker.delegate = self
         present(picker, animated: true)
+    }
+
+    func updateWidget() {
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
 }
