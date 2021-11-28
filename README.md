@@ -8,4 +8,4 @@
 
 ## Скриншоты
 
-<img src="Docs/screen1.png" width=414><img src="Docs/screen2.png" width=414>
+<img src="Docs/screen1.PNG" width=414><img src="Docs/screen2.PNG" width=414>
